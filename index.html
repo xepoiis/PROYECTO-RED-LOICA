@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ALERTA ROJA - Comunidad Loica</title>
+    <style>
+        :root {
+            --danger-red: #D32F2F;
+            --dark-bg: #121212;
+            --card-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-muted: #B0B0B0;
+            --safe-green: #388E3C;
+            --alert-yellow: #FBC02D;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        
+        body { background-color: var(--dark-bg); color: var(--text-main); display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
+
+        /* PANTALLA DE INTERACCIÓN (Para saltar el bloqueo de audio) */
+        #pantalla-interaccion {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #B71C1C; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; cursor: pointer; animation: bg-flash 0.5s infinite alternate;
+        }
+        #pantalla-interaccion h1 { font-size: 5rem; margin-bottom: 20px; }
+        #pantalla-interaccion h2 { font-size: 2rem; color: white; padding: 20px; text-transform: uppercase; }
+        #pantalla-interaccion p { font-size: 1.2rem; color: #FFCDD2; font-weight: bold; }
+
+        /* Resto de la interfaz */
+        .status-bar { width: 100%; background-color: #000; color: var(--text-muted); padding: 8px 15px; font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
+        .status-indicator { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 8px; height: 8px; background-color: var(--safe-green); border-radius: 50%; animation: pulse-dot 2s infinite; }
+        
+        .header-alert { width: 100%; background-color: var(--danger-red); padding: 20px; text-align: center; animation: bg-flash 1.5s infinite alternate; box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4); }
+        .header-alert h1 { font-size: 1.8rem; font-weight: 900; letter-spacing: 1px; margin-bottom: 5px; }
+        .header-alert p { font-size: 0.9rem; font-weight: 600; opacity: 0.9; }
+
+        .app-container { width: 100%; max-width: 480px; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        
+        .info-card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; border-left: 5px solid var(--alert-yellow); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .info-card h2 { font-size: 1.2rem; color: var(--alert-yellow); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .info-card p { font-size: 0.95rem; line-height: 1.5; color: #E0E0E0; }
+
+        .map-card { background-color: #EFEFEF; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.5); position: relative; }
+        .map-header { background-color: #333; padding: 10px 15px; font-size: 0.85rem; font-weight: bold; color: white; text-align: center; }
+        svg { width: 100%; height: auto; display: block; }
+
+        .btn-confirm { background-color: var(--safe-green); color: white; border: none; padding: 18px; font-size: 1.1rem; font-weight: bold; border-radius: 12px; width: 100%; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 15px rgba(56, 142, 60, 0.4); transition: transform 0.1s; }
+        .btn-confirm:active { transform: scale(0.98); }
+
+        @keyframes pulse-dot { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+        @keyframes bg-flash { 0% { background-color: #B71C1C; } 100% { background-color: #F44336; } }
+        @keyframes draw-path { to { stroke-dashoffset: 0; } }
+        @keyframes blink-location { 0%, 100% { opacity: 1; r: 6; } 50% { opacity: 0.6; r: 8; } }
+    </style>
+</head>
+<body>
+
+    <div id="pantalla-interaccion" onclick="iniciarEmergencia()">
+        <h1>⚠️</h1>
+        <h2>TOQUE LA PANTALLA</h2>
+        <p>PARA VER RUTA DE EVACUACIÓN</p>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-indicator">
+            <div class="dot"></div>
+            <span>Conectado: Red Mesh Loica (OFF-GRID)</span>
+        </div>
+        <span id="clock">00:00</span>
+    </div>
+
+    <div class="header-alert">
+        <h1>¡FUEGO CONFIRMADO!</h1>
+        <p>EVACUACIÓN INMEDIATA REQUERIDA</p>
+    </div>
+
+    <div class="app-container">
+        <div class="info-card">
+            <h2>⚠️ Instrucciones Oficiales</h2>
+            <p><strong>1.</strong> Mantenga la calma. Esta red es local y segura.<br>
+               <strong>2.</strong> Ayude a adultos mayores cercanos.<br>
+               <strong>3.</strong> Siga la ruta amarilla hacia la Cancha de Deportes.</p>
+        </div>
+
+        <div class="map-card">
+            <div class="map-header">RUTA DE EVACUACIÓN ÓPTIMA</div>
+            <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+                <rect width="400" height="300" fill="#CFD8DC"/>
+                <path d="M 0 0 L 150 0 L 120 180 L 0 250 Z" fill="#A5D6A7" opacity="0.6"/>
+                <text x="20" y="30" fill="#2E7D32" font-size="12" font-weight="bold" opacity="0.7">ZONA FORESTAL</text>
+                <path d="M -10 180 Q 150 200 410 100" fill="none" stroke="#FFFFFF" stroke-width="25" stroke-linecap="round"/>
+                <path d="M 250 -10 L 180 310" fill="none" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round"/>
+                <circle cx="40" cy="80" r="30" fill="#FF5252" opacity="0.4">
+                    <animate attributeName="r" values="30;40;30" dur="2s" repeatCount="indefinite" />
+                </circle>
+                <text x="22" y="85" fill="#B71C1C" font-size="18">🔥</text>
+                <rect x="280" y="40" width="90" height="70" rx="8" fill="#81C784"/>
+                <circle cx="325" cy="75" r="15" fill="#2E7D32"/>
+                <text x="285" y="125" fill="#2E7D32" font-size="11" font-weight="bold">PUNTO SEGURO</text>
+                <circle cx="90" cy="185" r="8" fill="#1976D2" style="animation: blink-location 1.5s infinite;"/>
+                <path d="M 90 185 Q 150 195 210 165 L 280 100" fill="none" stroke="#FBC02D" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-dasharray="20 10" stroke-dashoffset="400" style="animation: draw-path 60s linear forwards;"/>
+                <polygon points="275,105 285,95 295,110" fill="#FBC02D" transform="rotate(35 285 95)"/>
+            </svg>
+        </div>
+
+        <button class="btn-confirm" onclick="apagarSirena()">He leído las instrucciones</button>
+    </div>
+
+    <script>
+        // Actualizar reloj
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        }, 1000);
+
+        // Sistema de Audio Sintetizado (Zero Dependency)
+        let audioCtx;
+        let sirenaInterval;
+
+        function generarTonoSirena() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'sawtooth'; // Onda de sierra para que suene como alarma real
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime); 
+            osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.4); // Sube el tono bruscamente
+            
+            gain.gain.setValueAtTime(1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5); // Corta el sonido
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.5);
+        }
+
+        function iniciarEmergencia() {
+            // 1. Ocultar la pantalla trampa
+            document.getElementById('pantalla-interaccion').style.display = 'none';
+            
+            // 2. Iniciar el motor de audio
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            
+            // 3. Hacer sonar la sirena cada 600 milisegundos
+            sirenaInterval = setInterval(generarTonoSirena, 600);
+            generarTonoSirena(); // Llamar el primero inmediatamente
+        }
+
+        function apagarSirena() {
+            // Detener el loop de la sirena
+            clearInterval(sirenaInterval);
+            
+            // Cambiar el botón para indicar confirmación
+            const btn = document.querySelector('.btn-confirm');
+            btn.style.backgroundColor = '#1565C0';
+            btn.textContent = 'Ruta confirmada - Proceda';
+            btn.disabled = true;
+        }
+    </script>
+</body>
+</html>
